@@ -38,7 +38,7 @@ On an aarch64 Fedora-based system with `toolbox`:
 ```bash
 git clone https://github.com/kitocato/bloodborne-linux-arm64
 cd bloodborne-linux-arm64
-./build-odin.sh          # sources in ~/src, output in dist/bloodborne-linux-arm64/
+bash build-odin.sh          # sources in ~/src, output in dist/bloodborne-linux-arm64/
 ```
 
 What the script does, on top of upstream `build.sh`:
