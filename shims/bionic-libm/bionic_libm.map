@@ -1,0 +1,1 @@
+LIBC { global: sin; cos; tan; exp2; log2; atan2; fmod; remainder; local: *; };
