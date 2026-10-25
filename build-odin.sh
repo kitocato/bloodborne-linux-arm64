@@ -6,7 +6,7 @@ set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 src=${SRC:-$HOME/src}
 box=${BOX:-bbport-build}
-commit=ab062151caf5969478f8ed5da20d2060520701c1   # Bloodborne-Android 2.0.0 (Beta 1)
+commit=f141387d5fb96cc31b1addc15d43b0d96e5dd28e   # Bloodborne-Android 2.0.1 (Beta 1)
 fork=$src/Bloodborne-Android
 dist=$here/dist/bloodborne-linux-arm64
 mkdir -p "$src"
