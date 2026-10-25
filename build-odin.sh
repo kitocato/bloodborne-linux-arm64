@@ -21,7 +21,7 @@ toolbox run -c "$box" sudo dnf install -y --skip-unavailable \
     libavcodec-free-devel libavformat-free-devel libavutil-free-devel libswresample-free-devel libswscale-free-devel \
     boost-devel fmt-devel magic_enum-devel robin-map-devel xxhash-devel VulkanMemoryAllocator-devel \
     glslang glslang-devel spirv-cross spirv-cross-devel spirv-headers-devel spirv-tools-devel zydis-devel miniz-devel \
-    libX11-devel libxcb-devel xorg-x11-proto-devel wayland-devel
+    libX11-devel libxcb-devel xorg-x11-proto-devel wayland-devel clang lld
 
 # 2. Sources: the port at the tested commit, and newer headers than Fedora 44 ships
 #    (vulkan.hpp 1.4.341 lacks types the renderer uses; the port expects <magic_enum/magic_enum.hpp>).
@@ -40,8 +40,16 @@ fi
 (cd "$fork" && toolbox run -c "$box" env BB_LTO=OFF CMAKE_PREFIX_PATH="$here/shims/cmake" \
     CXXFLAGS="-I$src/Vulkan-Headers/include -I$src/magic_enum/include" bash build.sh)
 
-# 5. Package: the layout bloodborne.sh expects.
-rm -rf "$dist" && mkdir -p "$dist"/{app/bin/gpu,app/bin/cpu,app/logs,lib,aot,data,game}
+# 5. lsfg-vk 1.0.0 (MIT), the frame generation layer bloodborne.sh uses. Built with clang: GCC ignores
+#    the visibility attribute in front of extern "C" on its layer entry points, so the loader skips it.
+lsfg=$src/lsfg-vk1
+[ -d "$lsfg/.git" ] || git clone -q --branch v1.0.0 --depth 1 --recurse-submodules --shallow-submodules \
+    https://github.com/PancakeTAS/lsfg-vk.git "$lsfg"
+(cd "$lsfg" && toolbox run -c "$box" sh -c 'cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ && cmake --build build')
+
+# 6. Package: the layout bloodborne.sh expects.
+rm -rf "$dist" && mkdir -p "$dist"/{app/bin/gpu,app/bin/cpu,app/logs,lib,lsfg1,aot,data,game}
 cp "$fork/run.sh" "$dist/app/" && cp -r "$fork/scripts" "$fork/patches" "$dist/app/"
 install -m755 "$fork/out/bb-probe" "$fork/out/bb-gpu-capabilities" "$dist/app/bin/"
 install -m755 "$fork/out/gpu/libbbgpu.so" "$dist/app/bin/gpu/"
@@ -51,6 +59,12 @@ toolbox run -c "$box" sh -c "cp -L /usr/lib64/libstdc++.so.6 /usr/lib64/libgcc_s
     /usr/lib64/libZydis.so.5 /usr/lib64/libZycore.so.1 '$dist/lib/'"
 toolbox run -c "$box" gcc -O2 -fPIC -shared -fno-builtin -Wl,-soname,libm.so \
     -Wl,--version-script="$here/shims/bionic-libm/bionic_libm.map" "$here/shims/bionic-libm/bionic_libm.c" -o "$dist/lib/libm.so"
+install -m755 "$lsfg/build/liblsfg-vk.so" "$dist/lsfg1/"
+# "./": a library_path with a directory separator is relative to the manifest; a bare name is
+# searched in the system library paths instead.
+sed 's#"library_path": "liblsfg-vk.so"#"library_path": "./liblsfg-vk.so"#' \
+    "$lsfg/VkLayer_LS_frame_generation.json" > "$dist/lsfg1/VkLayer_LS_frame_generation.json"
+cp "$lsfg/LICENSE.md" "$dist/lsfg1/LICENSE.md"
 install -m755 "$here/launcher/bloodborne.sh" "$dist/"
 cp "$fork/LICENSE" "$dist/LICENSE"
 cp "$here/README.md" "$here/THIRD_PARTY.md" "$dist/"

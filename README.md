@@ -28,6 +28,7 @@ It was tested on an **AYN Odin 3** (Snapdragon 8 Elite, Adreno 830, Turnip / Mes
 For Steam Game Mode, add `bloodborne.sh` as a non-Steam game.
 - Leave "Start in" **unquoted**.
 - On Armada, the launch option `/usr/libexec/armada/armada-game-launch %command%` is fine.
+- For frame generation, see the section below.
 
 The in-game port menu is on **L3+R3** (or Insert).
 
@@ -58,12 +59,36 @@ The GPU is the limit, and CPU threads stay below 60%. Settings that were used:
 
 This gives a locked **30 FPS** with good input response.
 
+## Frame generation (30 → 60)
+
+The release includes the **lsfg-vk 1.0.0** Vulkan layer (MIT, built with clang) in `lsfg1/`. It needs your own `Lossless.dll` from Lossless Scaling.
+
+`bloodborne.sh` turns it on when the game is started through the wrapper of the [LSFG-VK 2 ARM64 Decky plugin](https://github.com/razoomnik/lsfg-vk2-arm64-odin3), i.e. when `LSFGVK_PROFILE` is set.
+- The launch option is `/usr/libexec/armada/armada-game-launch ~/.local/bin/lsfg-vk2-arm64 %command%`.
+- The plugin's 2.0 layer is switched off for this game only (`DISABLE_LSFGVK=1`). The 1.0 layer from `lsfg1/` runs instead.
+- It runs with the **immediate** present mode and the plugin's settings (`dll`, `multiplier`, `flow_scale`, `performance_mode` from `~/.config/decky-lsfg-vk2-arm64/conf.toml`), read at launch.
+- Multiplier 1 turns it off. Other games keep using the plugin's 2.0 layer as usual.
+
+Measured on the Odin 3, x2 with a 30 FPS cap, standing still in the same spot each time:
+
+| Layer | Time inside `vkQueuePresentKHR` | Real FPS | Shown |
+|---|---|---|---|
+| lsfg-vk 2.0-dev (plugin) | ~14 ms | ~19 | ~38 |
+| lsfg-vk 1.0, FIFO | ~19 ms | 19–23 | jittery |
+| the port's FSR 3.1 FG (`BB_FRAME_GEN=1`) | n/a | ~18 | smears the UI |
+| **lsfg-vk 1.0, immediate** | **0.4 ms** | **30** | **~60** |
+
+- **x3** costs too much GPU time: the present waits again, at about 28 real FPS.
+- **An uncapped game** (`BB_FPS=60`) stays at about 30 real FPS with frame generation, so the cap costs nothing.
+
+The port holds its submission lock across `vkQueuePresentKHR`, so a layer that waits there for vblank or for the GPU stalls the game's command submission.
+
 ## Known issues
 
 - **Startup resolution patch → AOT stop.** With `output_res` other than 1080p and `live_resolution=0`, the port patches the scene size into game code. `libbbaot.so` has no variant for that function, and the game stops with `native code for a patched or hooked function has no variant at +0x1d969f0`. `bloodborne.sh` sets `BB_LIVE_RES=1` to avoid it.
 - **The in-game menu rewrites the whole `bbport.ini`.** It writes its in-memory values on every change, and only list resolutions (720p, 1080p, 1440p, 2160p) are kept. Edit the file only while the game is closed.
 - **60 FPS limit.** At 60, the GPU-bound game queues frames and input lags. `bloodborne.sh` defaults to `BB_FPS=30`; set `BB_FPS=60` to try.
-- **lsfg-vk (external Vulkan layer) frame generation.** It drops the game from 30 to about 19 real FPS here, whatever the present mode, window size or flow scale. The Android build has its own integrated frame generation (Bloodframe), which is not available on desktop Linux yet.
+- **The lsfg-vk 2.0 layer** drops the game to about 19 real FPS. Use the bundled 1.0 layer instead, as described above.
 - **Steam Game Mode Quick Access Menu** can hang while the game runs, because the CEF GPU raster backlog piles up behind the GPU-heavy game. Killing the hung `steamwebhelper` renderer process restores it.
 
 ## License
