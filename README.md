@@ -1,6 +1,6 @@
 # Bloodborne on Linux ARM64 (Bloodborne-Android port, desktop Linux build)
 
-An unofficial Linux aarch64 build of [ducvd89/Bloodborne-Android](https://github.com/ducvd89/Bloodborne-Android) 2.0.1 (commit `f141387`).
+An unofficial Linux aarch64 build of [ducvd89/Bloodborne-Android](https://github.com/ducvd89/Bloodborne-Android) 2.2.0 (commit `f241353`).
 That port runs the game's own code as native ARM64, compiled ahead of time on a PC, and renders through shadPS4's Vulkan renderer.
 Upstream targets Android. This repository shows how to build and run it on a regular glibc Linux on ARM.
 
@@ -14,7 +14,8 @@ It was tested on an **AYN Odin 3** (Snapdragon 8 Elite, Adreno 830, Turnip / Mes
 
 - A decrypted dump of Bloodborne **CUSA03173 (EU), version 01.09**: the game folder with `eboot.bin` and `sce_module/`. Use your own disc.
 - `libbbaot.so`, the game's code compiled to ARM64. **You build it yourself** on a PC (Windows or Linux x86-64 with AVX2) with the free
-  [Bloodborne Android Rebuild Tool](https://github.com/ducvd89/Bloodborne-android-rebuild-tool) (`bb-recomp`, v1.0.0 or 1.1.0, ABI 1), from your own PKGs or extracted game.
+  [Bloodborne Android Rebuild Tool](https://github.com/ducvd89/Bloodborne-android-rebuild-tool) (`bb-recomp`, **v1.2.0 or newer**, AOT ABI 2), from your own PKGs or extracted game.
+  A `libbbaot.so` from Rebuild Tool 1.0/1.1 (ABI 1) no longer loads: rebuild it. If you pass `--pkgs`, keep only **one** base game PKG plus the 1.09 update in that folder.
   It is derived from the game, so it cannot be shared. Take `aot/libbbaot.so` and `aot/libbbaot.json` from its output.
 - Linux aarch64 with Vulkan 1.3+. Built and tested with Fedora 44 libraries in a toolbox.
 
@@ -100,7 +101,7 @@ The port holds its submission lock across `vkQueuePresentKHR`, so a layer that w
 The port is GPL-2.0, see `LICENSE` (copied from upstream). The build scripts and shims here are under the same license.
 Third-party libraries bundled in the release are listed in `THIRD_PARTY.md`.
 Source for the binaries:
-- upstream [Bloodborne-Android @ f141387](https://github.com/ducvd89/Bloodborne-Android/tree/f141387d5fb96cc31b1addc15d43b0d96e5dd28e) and its submodules;
+- upstream [Bloodborne-Android @ f241353](https://github.com/ducvd89/Bloodborne-Android/tree/f241353e36f46bf183806acd7b79222afff2fd2f) and its submodules;
 - plus `patches/` and `shims/` from this repository.
 
 
